@@ -1,0 +1,115 @@
+// Prisma schema for the Competitor Signal Agent.
+// Postgres (Neon/Supabase). LangGraph's PostgresSaver manages its own
+// checkpoint tables in the same database — no overlap with these models.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AgentRun {
+  id                  String   @id @default(cuid())
+  mode                String   @default("autonomous") // autonomous | review
+  status              String   @default("running") // running | waiting_for_user | needs_review | complete | cancelled | error
+  companyUrl          String?
+  optionalDescription String?
+  businessIdea        String?
+  targetCustomer      String?
+  recommendation      String?
+  sharedPatterns      Json? // string[]
+  competitorProfiles  Json? // CompetitorProfile[]
+  startedAt           DateTime @default(now())
+  endedAt             DateTime?
+
+  steps       AgentStep[]
+  checkpoints AgentCheckpoint[]
+  competitors Competitor[]
+  gaps        Gap[]
+}
+
+model AgentStep {
+  id         String   @id @default(cuid())
+  agentRunId String
+  nodeName   String
+  input      Json?
+  output     Json?
+  reasoning  String?
+  seq        Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  agentRun AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+
+  @@index([agentRunId])
+}
+
+model AgentCheckpoint {
+  id         String    @id @default(cuid())
+  agentRunId String
+  type       String // confirm_identity | select_competitors | review_sources | review_claims | review_gaps
+  status     String // not_required | waiting | approved | edited | rejected
+  payload    Json?
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  agentRun AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+
+  @@index([agentRunId])
+}
+
+model Competitor {
+  id         String   @id @default(cuid())
+  agentRunId String
+  name       String
+  urls       String[] @default([])
+  status     String   @default("pending") // pending | researching | complete
+
+  agentRun AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+  sources  Source[]
+  claims   Claim[]
+
+  @@index([agentRunId])
+}
+
+model Source {
+  id           String  @id @default(cuid())
+  competitorId String
+  url          String
+  title        String?
+  snippet      String?
+  text         String?
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  claims     Claim[]
+
+  @@index([competitorId])
+}
+
+model Claim {
+  id           String  @id @default(cuid())
+  competitorId String
+  sourceId     String?
+  type         String // target_customer | positioning | feature | pricing | recent_signal
+  value        String
+  evidence     String?
+  confidence   Float   @default(0)
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  source     Source?    @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  @@index([competitorId])
+  @@index([sourceId])
+}
+
+model Gap {
+  id         String @id @default(cuid())
+  agentRunId String
+  value      String
+
+  agentRun AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+
+  @@index([agentRunId])
+}

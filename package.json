@@ -1,0 +1,28 @@
+{
+  "name": "competitor-signal-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autonomous Competitor Signal Agent — full-stack LangGraph.js agent with live reasoning monitor and human-in-the-loop review.",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev -w server",
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build -w server && npm run build -w client",
+    "test": "npm run test -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
+    "prisma:generate": "npm run prisma:generate -w server",
+    "prisma:migrate": "npm run prisma:migrate -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
