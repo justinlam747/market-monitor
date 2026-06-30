@@ -1,0 +1,51 @@
+# Render Blueprint. In Render: New > Blueprint, point it at this repo.
+# Set the secret env vars (marked sync:false) in the dashboard after it creates
+# the services. You can keep using your Neon DATABASE_URL, or uncomment the
+# managed database block below and wire DATABASE_URL to it.
+
+services:
+  # ---- API (Node web service) ----
+  - type: web
+    name: market-monitor-api
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm install --include=dev && npm run prisma:generate -w server && npm run prisma:deploy -w server
+    startCommand: npm run start -w server
+    healthCheckPath: /api/health
+    envVars:
+      - key: AGENT_MODE
+        value: live
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: XAI_MODEL
+        value: grok-4.3
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: XAI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+
+  # ---- Web (static React app) ----
+  - type: web
+    name: market-monitor-web
+    runtime: static
+    rootDir: .
+    buildCommand: npm install --include=dev && npm run build -w client
+    staticPublishPath: client/dist
+    envVars:
+      # Set this to the API service URL, e.g. https://market-monitor-api.onrender.com
+      - key: VITE_API_BASE
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+# ---- Optional: Render-managed Postgres (otherwise keep Neon) ----
+# databases:
+#   - name: market-monitor-db
+#     plan: free
