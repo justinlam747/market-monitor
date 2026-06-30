@@ -189,7 +189,7 @@ function SummaryInner({ runId }: { runId: string }) {
         </div>
       </div>
 
-      <h1 className="mt-4 font-display text-[40px] font-medium uppercase tracking-wide text-foreground">
+      <h1 className="mt-4 font-display text-[28px] font-medium uppercase tracking-wide text-foreground sm:text-[40px]">
         Major competitor updates
       </h1>
       <p className="mt-3 max-w-[760px] text-[15px] text-default-500">

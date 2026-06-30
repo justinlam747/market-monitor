@@ -41,7 +41,8 @@ export function RunHistory() {
     );
 
   return (
-    <table className="w-full text-[15px]">
+    <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <table className="w-full min-w-[640px] text-[15px]">
       <thead>
         <tr className="text-left text-xs uppercase tracking-wider text-default-500">
           <th className="pb-3 pr-6 font-semibold">Company / Idea</th>
@@ -71,6 +72,7 @@ export function RunHistory() {
           </tr>
         ))}
       </tbody>
-    </table>
+      </table>
+    </div>
   );
 }

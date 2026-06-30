@@ -19,7 +19,7 @@ export function LiveAgentView({
   const paused = state.status === "waiting_for_user";
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+    <div className="flex flex-col lg:h-[calc(100vh-3.5rem)]">
       {/* No container — url top-left, controls top-right. */}
       <header className="flex items-start justify-between gap-4 pb-4">
         <div className="min-w-0">
@@ -70,12 +70,12 @@ export function LiveAgentView({
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-10 lg:grid-cols-[360px_1fr]">
+      <div className="grid flex-1 grid-cols-1 gap-8 lg:min-h-0 lg:grid-cols-[360px_1fr] lg:gap-10">
         <section className="flex min-h-0 flex-col">
           <h2 className="mb-1 text-xs font-semibold uppercase tracking-wider text-default-400">
             Tool calls
           </h2>
-          <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar pr-1">
+          <div className="overflow-y-auto no-scrollbar pr-1 lg:min-h-0 lg:flex-1">
             <ReasoningTimeline timeline={state.timeline} />
           </div>
         </section>
@@ -84,7 +84,7 @@ export function LiveAgentView({
           <h2 className="mb-1 text-xs font-semibold uppercase tracking-wider text-default-400">
             Agent graph
           </h2>
-          <div className="min-h-0 flex-1">
+          <div className="min-h-[360px] lg:min-h-0 lg:flex-1">
             <RunGraph timeline={state.timeline} status={state.status} />
           </div>
         </section>
