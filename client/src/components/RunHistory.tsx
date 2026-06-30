@@ -7,15 +7,25 @@ import { listRuns } from "../api.js";
 export function RunHistory() {
   const [runs, setRuns] = useState<RunListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSpinner, setShowSpinner] = useState(false);
 
   useEffect(() => {
+    // Only reveal a spinner if the load is genuinely slow; fast loads show none.
+    const t = setTimeout(() => setShowSpinner(true), 400);
     listRuns()
       .then(setRuns)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
+      .finally(() => clearTimeout(t));
+    return () => clearTimeout(t);
   }, []);
 
   if (error) return <p className="text-default-600">{error}</p>;
-  if (!runs) return <Spinner label="Loading runs…" />;
+  if (!runs)
+    return showSpinner ? (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Spinner color="default" />
+      </div>
+    ) : null;
   if (runs.length === 0)
     return (
       <p className="text-default-500">
