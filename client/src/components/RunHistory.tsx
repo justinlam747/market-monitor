@@ -2,30 +2,37 @@ import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { Spinner } from "@heroui/react";
 import type { RunListItem } from "@shared/types";
-import { listRuns } from "../api.js";
+import { fetchRuns, getCachedRuns } from "../api.js";
 
 export function RunHistory() {
-  const [runs, setRuns] = useState<RunListItem[] | null>(null);
+  // Render instantly from cache when available; otherwise show a spinner.
+  const [runs, setRuns] = useState<RunListItem[] | null>(() => getCachedRuns());
   const [error, setError] = useState<string | null>(null);
-  const [showSpinner, setShowSpinner] = useState(false);
 
   useEffect(() => {
-    // Only reveal a spinner if the load is genuinely slow; fast loads show none.
-    const t = setTimeout(() => setShowSpinner(true), 400);
-    listRuns()
-      .then(setRuns)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
-      .finally(() => clearTimeout(t));
-    return () => clearTimeout(t);
+    let cancelled = false;
+    // Revalidate in the background (stale-while-revalidate).
+    fetchRuns(true)
+      .then((d) => {
+        if (!cancelled) setRuns(d);
+      })
+      .catch((e) => {
+        if (!cancelled && getCachedRuns() === null) {
+          setError(e instanceof Error ? e.message : "Failed to load");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (error) return <p className="text-default-600">{error}</p>;
   if (!runs)
-    return showSpinner ? (
+    return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Spinner color="default" />
       </div>
-    ) : null;
+    );
   if (runs.length === 0)
     return (
       <p className="text-default-500">

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { User } from "@heroui/react";
 import type { RunListItem } from "@shared/types";
-import { listRuns } from "./api.js";
+import { fetchRuns, getCachedRuns } from "./api.js";
 
 function IconAnalyze() {
   return (
@@ -54,11 +54,14 @@ function NavItem({
 
 export function App() {
   const { pathname } = useLocation();
-  const [runs, setRuns] = useState<RunListItem[]>([]);
+  const [runs, setRuns] = useState<RunListItem[]>(
+    () => getCachedRuns()?.slice(0, 10) ?? []
+  );
 
-  // Keep the recent-runs list fresh as you navigate.
+  // Keep recent runs fresh as you navigate; the cache avoids refetching within
+  // its TTL (and a new run invalidates it).
   useEffect(() => {
-    listRuns()
+    fetchRuns()
       .then((r) => setRuns(r.slice(0, 10)))
       .catch(() => undefined);
   }, [pathname]);

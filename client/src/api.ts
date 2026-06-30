@@ -31,12 +31,17 @@ async function json<T>(res: Response): Promise<T> {
   return body as T;
 }
 
-export function createRun(body: CreateRunRequest): Promise<CreateRunResponse> {
-  return fetch(`${BASE}/api/run`, {
+export async function createRun(
+  body: CreateRunRequest
+): Promise<CreateRunResponse> {
+  const res = await fetch(`${BASE}/api/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  }).then((r) => json<CreateRunResponse>(r));
+  });
+  const out = await json<CreateRunResponse>(res);
+  invalidateRunsCache(); // new run should appear next time runs are read
+  return out;
 }
 
 export function getRun(id: string): Promise<RunSnapshot> {
@@ -45,6 +50,32 @@ export function getRun(id: string): Promise<RunSnapshot> {
 
 export function listRuns(): Promise<RunListItem[]> {
   return fetch(`${BASE}/api/runs`).then((r) => json<RunListItem[]>(r));
+}
+
+// --- Runs cache (native, TTL) ----------------------------------------------
+// Shared by the Runs page and the sidebar so navigating around doesn't refetch
+// or flash a spinner. Stale-while-revalidate: callers can read the cache
+// instantly and refresh in the background.
+
+const RUNS_TTL_MS = 30_000;
+let runsCache: { data: RunListItem[]; expires: number } | null = null;
+
+export function getCachedRuns(): RunListItem[] | null {
+  return runsCache && runsCache.expires > Date.now() ? runsCache.data : null;
+}
+
+export function invalidateRunsCache(): void {
+  runsCache = null;
+}
+
+export async function fetchRuns(force = false): Promise<RunListItem[]> {
+  if (!force) {
+    const cached = getCachedRuns();
+    if (cached) return cached;
+  }
+  const data = await listRuns();
+  runsCache = { data, expires: Date.now() + RUNS_TTL_MS };
+  return data;
 }
 
 export function streamUrl(id: string): string {
