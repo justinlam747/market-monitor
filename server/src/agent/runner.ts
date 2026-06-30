@@ -10,6 +10,9 @@ import { buildGraph, type CompiledGraph } from "./graph.js";
 import { AgentAnnotation } from "./state.js";
 import { LIMITS } from "./limits.js";
 import { registerRunContext, getRunContext, clearRunContext } from "./runContext.js";
+import { createLogger } from "../logger.js";
+
+const log = createLogger("agent.runner");
 
 let _graph: CompiledGraph | null = null;
 async function getGraph(): Promise<CompiledGraph> {
@@ -145,9 +148,13 @@ async function drive(
     // Completed: finalize_state already set the terminal status + emitted done.
     clearRunContext(runId);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    // Log the real detail server-side; surface only an ambiguous code + reference.
+    const reference = log.error(`run ${runId} failed`, err);
     await p.updateRun({ status: "error", ended: true }).catch(() => undefined);
-    p.emit("error", { message: `Run failed: ${message}`, data: { message } });
+    p.emit("error", {
+      message: "The run hit an error and was stopped.",
+      data: { code: "ERR_INTERNAL", reference },
+    });
     clearRunContext(runId);
   }
 }

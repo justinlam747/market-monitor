@@ -7,12 +7,28 @@ import type {
 
 const BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
 
-async function json<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
+const GENERIC_ERROR = "Something went wrong. Please try again.";
+
+// Parse a response body safely — an empty or non-JSON body must never throw
+// (e.g. "Unexpected end of JSON input"); it just yields {}.
+async function safeBody(res: Response): Promise<Record<string, unknown>> {
+  try {
+    const text = await res.text();
+    if (!text) return {};
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return {};
   }
-  return res.json() as Promise<T>;
+}
+
+async function json<T>(res: Response): Promise<T> {
+  const body = await safeBody(res);
+  if (!res.ok) {
+    const msg = typeof body.error === "string" ? body.error : GENERIC_ERROR;
+    const ref = typeof body.reference === "string" ? ` (ref ${body.reference})` : "";
+    throw new Error(`${msg}${ref}`);
+  }
+  return body as T;
 }
 
 export function createRun(body: CreateRunRequest): Promise<CreateRunResponse> {

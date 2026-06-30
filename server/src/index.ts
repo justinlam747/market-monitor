@@ -1,8 +1,16 @@
-import express from "express";
+import express, {
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import cors from "cors";
 import { config } from "./config.js";
 import { router } from "./api/routes.js";
 import { getCheckpointer } from "./checkpointer.js";
+import { createLogger } from "./logger.js";
+import { sendError } from "./errors.js";
+
+const log = createLogger("server");
 
 async function main() {
   const app = express();
@@ -14,24 +22,37 @@ async function main() {
   );
   app.use("/api", router);
 
-  // Warm the Postgres checkpointer (creates its tables) when a DB is configured.
+  // Final safety net: anything that slips through is logged with full detail and
+  // returned as an ambiguous code + reference. Never leak implementation detail.
+  app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+    if (res.headersSent) {
+      log.error(`unhandled error after headers (${req.method} ${req.path})`, err);
+      return res.end();
+    }
+    sendError(res, err, `${req.method} ${req.path}`);
+  });
+
+  // Last-resort guards so a stray rejection/exception never takes the process down.
+  process.on("unhandledRejection", (reason) =>
+    log.error("unhandledRejection", reason)
+  );
+  process.on("uncaughtException", (err) => log.error("uncaughtException", err));
+
   if (config.databaseUrl && config.agentMode === "live") {
     try {
       await getCheckpointer();
-      console.log("[server] checkpointer ready");
+      log.info("checkpointer ready");
     } catch (err) {
-      console.error("[server] checkpointer setup failed:", err);
+      log.error("checkpointer setup failed", err);
     }
   }
 
   app.listen(config.port, () => {
-    console.log(
-      `[server] listening on http://localhost:${config.port} (mode: ${config.agentMode})`
-    );
+    log.info(`listening on http://localhost:${config.port} (mode: ${config.agentMode})`);
   });
 }
 
 main().catch((err) => {
-  console.error("[server] fatal:", err);
+  log.error("fatal startup error", err);
   process.exit(1);
 });

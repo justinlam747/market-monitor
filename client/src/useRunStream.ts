@@ -212,12 +212,15 @@ function reduce(state: LiveState, ev: AgentEvent): LiveState {
         status: (ev.data as { status: RunStatus }).status ?? "complete",
         activeCheckpoint: undefined,
       };
-    case "error":
+    case "error": {
+      const d = ev.data as { reference?: string } | undefined;
+      const ref = d?.reference ? ` (ref ${d.reference})` : "";
       return {
         ...base,
         status: "error",
-        error: (ev.data as { message?: string })?.message,
+        error: (ev.message ?? "The run hit an error and was stopped.") + ref,
       };
+    }
     default:
       return base;
   }

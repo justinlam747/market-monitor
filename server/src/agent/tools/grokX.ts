@@ -1,7 +1,10 @@
 import { hasXai } from "../../config.js";
 import { LIMITS } from "../limits.js";
 import { grokXSearch } from "./grokClient.js";
+import { createLogger } from "../../logger.js";
 import type { CompanyIdentity } from "./identity.js";
+
+const log = createLogger("agent.grokX");
 
 export interface DiscoveredCompetitor {
   name: string;
@@ -125,7 +128,8 @@ export async function discoverCompetitorsViaX(
       fromDate: daysAgoISO(LIMITS.xSearchDays, new Date()),
     });
     return parseCompetitors(text).slice(0, LIMITS.maxCompetitors * 3);
-  } catch {
+  } catch (err) {
+    log.warn("X competitor discovery failed; continuing without it", err);
     return [];
   }
 }
@@ -148,7 +152,8 @@ export async function xSignalsFor(
       allowedHandles: handle ? [handle] : undefined,
     });
     return parseXSignals(text, citations).slice(0, LIMITS.maxXPostsPerCompetitor);
-  } catch {
+  } catch (err) {
+    log.warn(`X signals failed for "${competitorName}"; continuing without it`, err);
     return [];
   }
 }

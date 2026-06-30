@@ -113,3 +113,21 @@ model Gap {
 
   @@index([agentRunId])
 }
+
+// Application logs. Different modules log at different levels; warn/error are
+// persisted here. `reference` correlates a server-side incident with the
+// ambiguous code returned to the client. `detail` is server-only.
+model LogEntry {
+  id        String   @id @default(cuid())
+  level     String // error | warn | info | debug | trace
+  module    String
+  message   String
+  code      String?
+  reference String?
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([reference])
+  @@index([createdAt])
+}
