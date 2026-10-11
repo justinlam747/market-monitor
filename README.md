@@ -1,4 +1,4 @@
-# ⚡ Competitor Signal Agent
+# Competitor Signal Agent
 
 A full-stack, **autonomous competitor-intelligence agent**. You give it a company
 URL; a [LangGraph.js](https://langchain-ai.github.io/langgraphjs/) agent plans
